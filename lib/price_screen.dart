@@ -13,8 +13,9 @@ class PriceScreen extends StatefulWidget {
 
 class _PriceScreenState extends State<PriceScreen> {
   String selectedCurrency = 'USD';
-  double selectedPrice = 0;
+  Map<String, double> selectedPrice = {};
   bool isLoading = false;
+  List<String> cryptoCurrency = ['BTC', 'LTC', 'BCH', 'ETH'];
 
   DropdownButton<String> androidPicker() {
     List<DropdownMenuItem<String>> list = [];
@@ -33,7 +34,9 @@ class _PriceScreenState extends State<PriceScreen> {
       items: list,
       onChanged: (value) {
         setState(() {
-          getPrice();
+          for (var i = 0; i < cryptoCurrency.length; i++) {
+            getPrice(cryptoCurrency[i]);
+          }
           selectedCurrency = value;
         });
       },
@@ -53,7 +56,9 @@ class _PriceScreenState extends State<PriceScreen> {
       onSelectedItemChanged: (selectedIndex) {
         String currency = currenciesList[selectedIndex];
         setState(() {
-          getPrice();
+          for (var i = 0; i < cryptoCurrency.length; i++) {
+            getPrice(cryptoCurrency[i]);
+          }
           selectedCurrency = currency;
         });
       },
@@ -61,14 +66,41 @@ class _PriceScreenState extends State<PriceScreen> {
     );
   }
 
-  getPrice() async {
+  getPrice(String crypto) async {
     isLoading = true;
     var response = await http.get(
-        'https://apiv2.bitcoinaverage.com/indices/global/ticker/BTC$selectedCurrency');
+        'https://apiv2.bitcoinaverage.com/indices/global/ticker/$crypto$selectedCurrency');
     setState(() {
-      selectedPrice = jsonDecode(response.body)['last'];
+      selectedPrice[crypto] = jsonDecode(response.body)['last'];
       isLoading = false;
     });
+  }
+
+  List<Widget> getTickerList(List<String> cryptoList) {
+    List<Widget> list = new List<Widget>();
+    for (var i = 0; i < cryptoList.length; i++) {
+      list.add(
+        Card(
+          color: Colors.lightBlueAccent,
+          elevation: 5.0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
+            child: Text(
+              '1 ${cryptoList[i]} = ${isLoading ? '-' : selectedPrice[cryptoList[i]].toString()} $selectedCurrency',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 20.0,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    return list;
   }
 
   @override
@@ -83,24 +115,7 @@ class _PriceScreenState extends State<PriceScreen> {
         children: <Widget>[
           Padding(
             padding: EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0),
-            child: Card(
-              color: Colors.lightBlueAccent,
-              elevation: 5.0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
-                child: Text(
-                  '1 BTC = ${isLoading ? '...' : selectedPrice.toString()} $selectedCurrency',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
+            child: Column(children: getTickerList(cryptoCurrency)),
           ),
           Container(
             height: 150.0,
